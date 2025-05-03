@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>POCUS</title>
+  <style>
+    :root {
+      --timer-color: #e74c3c;
+      --bg-color: #f9fafb;
+      --card-color: #ffffff;
+      --accent-color: #6366f1;
+      --success-color: #10b981;
+      --warn-color: #f59e0b;
+      --danger-color: #ef4444;
+      --text-color: #111827;
+    }
+    body.dark {
+      --bg-color: #1f2937;
+      --card-color: #374151;
+      --text-color: #f9fafb;
+      --accent-color: #818cf8;
+      --success-color: #34d399;
+      --warn-color: #facc15;
+      --danger-color: #f87171;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    header {
+      background-color: var(--accent-color);
+      color: white;
+      width: 100%;
+      text-align: center;
+      padding: 1.5rem 1rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    footer {
+      width: 100%;
+      background-color: var(--card-color);
+      color: var(--text-color);
+      text-align: center;
+      padding: 1rem;
+      margin-top: 2rem;
+      border-top: 1px solid #ccc;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      max-width: 1000px;
+      width: 100%;
+      margin: 2rem 1rem;
+      gap: 2rem;
+    }
+    .layout {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+    @media (min-width: 768px) {
+      .layout {
+        flex-direction: row;
+      }
+      .timer, .todo {
+        width: 50%;
+      }
+    }
+    .sidebar {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .toggle-mode, .toggle-focus {
+      padding: 0.4rem 1rem;
+      border-radius: 1rem;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      background-color: var(--accent-color);
+      color: white;
+    }
+    .timer, .todo {
+      background: var(--card-color);
+      padding: 2rem;
+      border-radius: 1rem;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+      animation: fadeIn 0.6s ease-in-out;
+    }
+    .circle {
+      position: relative;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: conic-gradient(var(--timer-color) calc(var(--percent) * 1%), #e5e7eb 0%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: background 0.5s ease-in-out;
+      margin: 0 auto;
+      animation: popIn 0.5s ease;
+    }
+    .circle h2 {
+      position: absolute;
+      font-size: 2.2rem;
+      color: var(--text-color);
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.8); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    .blinking {
+      animation: blink 1s step-start infinite;
+    }
+    @keyframes blink {
+      50% { filter: brightness(0.5); }
+    }
+    .controls {
+      margin-top: 1rem;
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+    }
+    button {
+      padding: 0.6rem 1.2rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 0.5rem;
+      background-color: var(--accent-color);
+      color: white;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    button:hover {
+      background-color: #4f46e5;
+    }
+    .progress {
+      height: 12px;
+      background: #e5e7eb;
+      border-radius: 6px;
+      overflow: hidden;
+      margin: 1rem 0;
+    }
+    .progress-bar {
+      height: 100%;
+      background: var(--success-color);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    li {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+      font-size: 1rem;
+    }
+    input[type="text"], input[type="date"] {
+      padding: 0.6rem;
+      font-size: 1rem;
+      border-radius: 0.5rem;
+      border: 1px solid #d1d5db;
+      margin-bottom: 0.5rem;
+      width: 100%;
+    }
+    @media (max-width: 600px) {
+      .circle {
+        width: 160px;
+        height: 160px;
+      }
+      .circle h2 {
+        font-size: 1.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>POCUS</h1>
+    <p>Focus timer with to-do & calendar</p>
+  </header>
+
+  <div class="container">
+    <div class="sidebar">
+      <button class="toggle-mode" onclick="toggleMode()">🌚 / 🌞</button>
+      <button class="toggle-focus" onclick="toggleFocus()">집중 / 휴식 전환</button>
+    </div>
+
+    <div class="layout">
+      <div class="timer">
+        <div id="circle" class="circle">
+          <h2 id="timeDisplay">25:00</h2>
+        </div>
+        <div class="controls" style="justify-content: center; margin-top: 1rem;">
+          <span id="cycleCount" style="font-weight: bold;">🌱 집중 사이클: 0</span>
+        </div>
+        <div class="controls">
+          <button onclick="startTimer()">시작</button>
+          <button onclick="resetTimer()">리셋</button>
+        </div>
+      </div>
+
+      <div class="todo">
+        <input type="date" id="datePicker" />
+        <div class="progress">
+          <div id="progressBar" class="progress-bar"></div>
+        </div>
+        <input type="text" id="todoInput" placeholder="작업 추가..." />
+        <button onclick="addTodo()">추가</button>
+        <ul id="todoList"></ul>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>Team POCUS</p>
+    <p>경기대학교 웹프로그래밍 프로젝트</p>
+    <p id="quote" style="font-style: italic; margin-top: 0.5rem;"></p>
+  </footer>
+
+  <script>
+    let focusTime = 25 * 60;
+    let breakTime = 5 * 60;
+    let time = focusTime;
+    let isFocus = true;
+    let interval;
+    let cycleCount = 0;
+
+    function formatTime(t) {
+      const m = String(Math.floor(t / 60)).padStart(2, '0');
+      const s = String(t % 60).padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    function updateCircle() {
+      const percent = ((isFocus ? time : breakTime - time) / (isFocus ? focusTime : breakTime)) * 100;
+      document.documentElement.style.setProperty('--percent', percent);
+      const circle = document.getElementById('circle');
+      if (time <= 10) {
+        circle.classList.add('blinking');
+        document.documentElement.style.setProperty('--timer-color', 'var(--warn-color)');
+      } else {
+        circle.classList.remove('blinking');
+        document.documentElement.style.setProperty('--timer-color', isFocus ? 'var(--danger-color)' : 'var(--accent-color)');
+      }
+    }
+
+    function startTimer() {
+      clearInterval(interval);
+      interval = setInterval(() => {
+        time--;
+        document.getElementById('timeDisplay').textContent = formatTime(time);
+        updateCircle();
+        if (time <= 0) {
+          clearInterval(interval);
+          if (isFocus) {
+            cycleCount++;
+            document.getElementById('cycleCount').textContent = `🌱 집중 사이클: ${cycleCount}`;
+          }
+          isFocus = !isFocus;
+          time = isFocus ? focusTime : (cycleCount % 4 === 0 ? 30 * 60 : breakTime);
+          startTimer();
+        }
+      }, 1000);
+    }
+
+    function resetTimer() {
+      clearInterval(interval);
+      isFocus = true;
+      time = focusTime;
+      document.getElementById('timeDisplay').textContent = formatTime(time);
+      updateCircle();
+    }
+
+    function toggleFocus() {
+      clearInterval(interval);
+      isFocus = !isFocus;
+      time = isFocus ? focusTime : breakTime;
+      document.getElementById('timeDisplay').textContent = formatTime(time);
+      updateCircle();
+    }
+
+    function addTodo() {
+      const input = document.getElementById('todoInput');
+      const text = input.value.trim();
+      if (!text) return;
+      const li = document.createElement('li');
+      const check = document.createElement('input');
+      check.type = 'checkbox';
+      check.onchange = saveTodos;
+      const deleteBtn = document.createElement('button');
+      deleteBtn.textContent = '🗑';
+      deleteBtn.style.marginLeft = 'auto';
+      deleteBtn.onclick = () => {
+        li.remove();
+        saveTodos();
+      };
+      li.appendChild(check);
+      li.appendChild(document.createTextNode(text));
+      li.appendChild(deleteBtn);
+      document.getElementById('todoList').appendChild(li);
+      input.value = '';
+      saveTodos();
+    }
+
+    function saveTodos() {
+      const date = document.getElementById('datePicker').value || new Date().toISOString().split('T')[0];
+      const items = [];
+      document.querySelectorAll('#todoList li').forEach(li => {
+        const checkbox = li.querySelector('input');
+        const label = li.childNodes[1];
+        items.push({ text: label.textContent, done: checkbox.checked });
+      });
+      localStorage.setItem(`todos-${date}`, JSON.stringify(items));
+      updateProgressBar(items);
+    }
+
+    function updateProgressBar(items) {
+      const done = items.filter(item => item.done).length;
+      const percent = items.length ? (done / items.length) * 100 : 0;
+      document.getElementById('progressBar').style.width = `${percent}%`;
+    }
+
+    function loadTodos() {
+      const date = document.getElementById('datePicker').value || new Date().toISOString().split('T')[0];
+      const data = JSON.parse(localStorage.getItem(`todos-${date}`)) || [];
+      const list = document.getElementById('todoList');
+      list.innerHTML = '';
+      data.forEach(item => {
+        const li = document.createElement('li');
+        const check = document.createElement('input');
+        check.type = 'checkbox';
+        check.checked = item.done;
+        check.onchange = saveTodos;
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = '🗑';
+        deleteBtn.style.marginLeft = 'auto';
+        deleteBtn.onclick = () => {
+          li.remove();
+          saveTodos();
+        };
+        li.appendChild(check);
+        li.appendChild(document.createTextNode(item.text));
+        li.appendChild(deleteBtn);
+        list.appendChild(li);
+      });
+      updateProgressBar(data);
+    }
+
+    function toggleMode() {
+      document.body.classList.toggle('dark');
+    }
+
+    function displayRandomQuote() {
+      const quotes = [
+        "시작이 반이다.",
+        "포기하지 말고 계속해보세요!",
+        "작은 걸음이 큰 변화를 만든다.",
+        "오늘도 한 걸음 전진!",
+        "집중은 최고의 습관입니다.",
+        "당신은 생각보다 강해요.",
+        "매일 1%의 성장으로 목표를 이룹니다.",
+        "생산성은 선택이 아니라 습관입니다.",
+        "멈추지 말라고."
+      ];
+      const quote = quotes[Math.floor(Math.random() * quotes.length)];
+      document.getElementById("quote").textContent = quote;
+    }
+
+    document.getElementById('datePicker').addEventListener('change', loadTodos);
+
+    window.onload = () => {
+      document.getElementById('datePicker').value = new Date().toISOString().split('T')[0];
+      loadTodos();
+      updateCircle();
+      document.getElementById('timeDisplay').textContent = formatTime(time);
+      document.getElementById('cycleCount').textContent = `🌱 집중 사이클: ${cycleCount}`;
+      displayRandomQuote();
+    };
+  </script>
+</body>
+</html>
