@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>POCUS - Enhanced Focus Timer</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <!-- jQuery UI CSS -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/themes/ui-lightness/jquery-ui.min.css" rel="stylesheet">
+  
+  <style>
+    :root {
+      --timer-color: #e74c3c;
+      --bg-color: #f8f9fa;
+      --card-color: #ffffff;
+      --accent-color: #6366f1;
+      --success-color: #10b981;
+      --warn-color: #f59e0b;
+      --danger-color: #ef4444;
+      --text-color: #212529;
+      --nav-width: 250px;
+    }
+
+    body.dark {
+      --bg-color: #1a1d23;
+      --card-color: #2d3748;
+      --text-color: #f7fafc;
+      --accent-color: #818cf8;
+      --success-color: #34d399;
+      --warn-color: #facc15;
+      --danger-color: #f87171;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      transition: all 0.3s ease;
+      overflow-x: hidden;
+    }
+
+    /* Navigation Styles */
+    .navbar-custom {
+      background-color: var(--accent-color) !important;
+      position: fixed;
+      top: 0;
+      width: 100%;
+      z-index: 1000;
+      transition: all 0.3s ease;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: -var(--nav-width);
+      width: var(--nav-width);
+      height: 100%;
+      background-color: var(--card-color);
+      transition: left 0.3s ease;
+      z-index: 999;
+      padding-top: 70px;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    }
+
+    .sidebar.active {
+      left: 0;
+    }
+
+    /* Desktop Navigation */
+    @media (min-width: 992px) {
+      .navbar-custom {
+        display: none;
+      }
+          
+      .sidebar {
+        left: 0 !important;
+        position: fixed;
+        padding-top: 20px;
+      }
+
+      .main-content {
+        margin-left: var(--nav-width);
+        margin-top: 0;
+      }
+    }
+
+    /* Mobile Navigation */
+    @media (max-width: 991.98px) {
+      .main-content {
+        margin-top: 70px;
+      }
+
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: -250px;
+        width: var(--nav-width);
+        height: 100%;
+        display: block;
+      }
+
+      .sidebar.active {
+        left: 0;
+      }
+    }
+
+    /* Timer Styles */
+    .timer-container {
+      background: var(--card-color);
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      text-align: center;
+      position: relative;
+    }
+
+    .circle {
+      position: relative;
+      width: 250px;
+      height: 250px;
+      margin: 0 auto 30px;
+      border-radius: 50%;
+      background: conic-gradient(var(--timer-color) calc(var(--percent, 0) * 1%), #e5e7eb 0%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: all 0.5s ease;
+      animation: fadeIn 0.6s ease;
+    }
+
+    .circle::before {
+      content: '';
+      position: absolute;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: var(--card-color);
+      z-index: 1;
+    }
+
+    .circle h2 {
+      position: relative;
+      z-index: 2;
+      font-size: 2.5rem;
+      color: var(--text-color);
+      margin: 0;
+      font-weight: 300;
+    }
+
+    .timer-settings {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+    }
+
+    /* Todo Styles */
+    .todo-container {
+      background: var(--card-color);
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+
+    .todo-item {
+      background: rgba(99, 102, 241, 0.1);
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .todo-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .todo-item.completed {
+      background: rgba(16, 185, 129, 0.1);
+      opacity: 0.7;
+    }
+
+    .progress-ring {
+      width: 60px;
+      height: 60px;
+      margin: 0 auto 20px;
+    }
+
+    .progress-ring circle {
+      fill: none;
+      stroke-width: 4;
+      stroke: #e5e7eb;
+      stroke-linecap: round;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+
+    .progress-ring .progress {
+      stroke: var(--success-color);
+      stroke-dasharray: 157;
+      stroke-dashoffset: 157;
+      transition: stroke-dashoffset 0.3s ease;
+    }
+
+    /* Log Styles */
+    .completion-log {
+      background: var(--card-color);
+      border-radius: 15px;
+      padding: 20px;
+      margin-top: 20px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .log-entry {
+      background: rgba(16, 185, 129, 0.1);
+      border-left: 4px solid var(--success-color);
+      padding: 10px 15px;
+      margin-bottom: 10px;
+      border-radius: 0 10px 10px 0;
+    }
+
+    /* YouTube Page Styles */
+    .youtube-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 30px;
+      padding: 20px 0;
+    }
+
+    .video-card {
+      background: var(--card-color);
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    .video-frame {
+      width: 100%;
+      height: 250px;
+      border-radius: 10px;
+      border: none;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .blinking {
+      animation: pulse 1s infinite;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .circle {
+        width: 200px;
+        height: 200px;
+      }
+      
+      .circle::before {
+        width: 160px;
+        height: 160px;
+      }
+      
+      .circle h2 {
+        font-size: 2rem;
+      }
+      
+      .youtube-container {
+        grid-template-columns: 1fr;
+      }
+      
+      .video-frame {
+        height: 200px;
+      }
+    }
+
+    /* Layout */
+    .one-true-layout {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .content-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      padding: 20px;
+    }
+
+    /* Utilities */
+    .floating-controls {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 100;
+    }
+
+    .flex-center {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .flex-horizontal {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-color);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--accent-color);
+      border-radius: 4px;
+    }
+
+    footer {
+      width: 100%;
+      background-color: var(--card-color);
+      color: var(--text-color);
+      text-align: center;
+      padding: 1rem;
+      margin-top: 2rem;
+      border-top: 1px solid #ccc;
+    }
+
+    footer a img{
+    width: 40px;
+    }
+
+    @media (min-width: 992px) {
+      footer {
+        margin-left: var(--nav-width);
+        width: calc(100% - var(--nav-width));
+      }
+    }
+
+    .text-muted {
+      color: #6c757d !important;
+    }
+
+    body.dark .text-muted {
+      color: #fff !important;
+    }
+
+    /* Settings Panel */
+    .settings-panel {
+      background: var(--card-color) !important;
+      color: var(--text-color);
+    }
+
+    .todo-item.early {
+    border-left: 5px solid var(--success-color);
+    }
+
+    .todo-item.late {
+    border-left: 5px solid var(--danger-color);
+    }
+
+
+  </style>
+</head>
+<body class="one-true-layout">
+  <!-- Mobile Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-dark navbar-custom d-lg-none">
+    <div class="container-fluid">
+      <button class="navbar-toggler" type="button" id="sidebarToggle">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <a class="navbar-brand" href="#">POCUS</a>
+      <button class="btn btn-outline-light btn-sm" onclick="toggleDarkMode()">
+        <i class="fas fa-moon"></i>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Sidebar Navigation -->
+  <div class="sidebar" id="sidebar">
+    <div class="text-center mb-4 d-none d-lg-block">
+      <h3 class="text-primary">POCUS</h3>
+      <p class="small text-muted">Focus & Productivity</p>
+    </div>
+    <nav class="nav flex-column">
+      <a class="nav-link active" href="#" onclick="showPage('timer')">
+        <i class="fas fa-clock me-2"></i> 타이머
+      </a>
+      <a class="nav-link" href="#" onclick="showPage('youtube')">
+        <i class="fab fa-youtube me-2"></i> 집중 영상
+      </a>
+      <a class="nav-link" href="#" onclick="showPage('settings')">
+        <i class="fas fa-cog me-2"></i> 설정
+      </a>
+    </nav>
+    
+    <!-- Desktop Mode Toggle -->
+    <div class="position-absolute bottom-0 start-0 w-100 p-3 d-none d-lg-block">
+      <button class="btn btn-outline-primary w-100" onclick="toggleDarkMode()">
+        <i class="fas fa-moon me-2"></i> 다크 모드
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content content-wrapper">
+    <!-- Timer Page -->
+    <div id="timerPage" class="page-content container-fluid">
+      <div class="row justify-content-center">
+        <!-- Timer Section -->
+        <div class="col-lg-6 col-xl-5 mb-4">
+          <div class="timer-container position-relative">
+            <button class="btn btn-sm btn-outline-secondary timer-settings" onclick="toggleSettings()">
+              <i class="fas fa-cog"></i>
+            </button>
+            
+            <div id="settingsPanel" class="settings-panel" style="display: none;">
+              <h6>타이머 설정</h6>
+              <div class="row g-2">
+                <div class="col-6">
+                  <label class="form-label small">집중 시간 (분)</label>
+                  <input type="number" class="form-control form-control-sm" id="focusTime" value="25" min="1" max="120">
+                </div>
+                <div class="col-6">
+                  <label class="form-label small">휴식 시간 (분)</label>
+                  <input type="number" class="form-control form-control-sm" id="breakTime" value="5" min="1" max="60">
+                </div>
+              </div>
+              <button class="btn btn-primary btn-sm mt-2 w-100" onclick="updateTimerSettings()">적용</button>
+            </div>
+
+            <div class="circle" id="timerCircle">
+              <h2 id="timeDisplay">25:00</h2>
+            </div>
+
+            <div class="mb-3">
+              <div class="badge bg-success fs-6 mb-2">
+                🌱 집중 사이클: <span id="cycleNumber">0</span>
+              </div>
+              <div class="badge bg-info fs-6" id="modeDisplay">집중 모드</div>
+            </div>
+
+            <div class="flex-horizontal">
+              <button class="btn btn-success btn-lg" onclick="TimerApp.start()">
+                <i class="fas fa-play me-2"></i>시작
+              </button>
+              <button class="btn btn-warning btn-lg" onclick="TimerApp.pause()">
+                <i class="fas fa-pause me-2"></i>일시정지
+              </button>
+              <button class="btn btn-secondary btn-lg" onclick="TimerApp.reset()">
+                <i class="fas fa-stop me-2"></i>리셋
+              </button>
+              <button class="btn btn-primary btn-lg" onclick="TimerApp.toggleMode()">
+                <i class="fas fa-exchange-alt me-2"></i>모드 전환
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Todo Section -->
+        <div class="col-lg-6 col-xl-5 mb-4">
+          <div class="todo-container">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5><i class="fas fa-tasks me-2"></i>할 일 목록</h5>
+              <input type="date" class="form-control form-control-sm" id="datePicker" style="width: auto;">
+            </div>
+
+            <!-- Progress Ring -->
+            <div class="text-center mb-3">
+              <svg class="progress-ring">
+                <circle cx="30" cy="30" r="25" class="progress-bg"></circle>
+                <circle cx="30" cy="30" r="25" class="progress" id="progressCircle"></circle>
+              </svg>
+              <div id="progressText" class="fw-bold">0% 완료</div>
+            </div>
+
+            <div class="input-group mb-3">
+              <input type="text" class="form-control" id="todoInput" placeholder="새로운 할 일을 입력하세요...">
+<input type="time" class="form-control" id="goalTimeInput" style="max-width: 150px;">
+              <button class="btn btn-primary" onclick="TodoApp.add()">
+                <i class="fas fa-plus"></i>
+              </button>
+            </div>
+
+            <div id="todoList" class="mb-3"></div>
+
+            <!-- Completion Log -->
+            <div class="completion-log">
+              <h6><i class="fas fa-history me-2"></i>완료 기록</h6>
+              <div id="completionLog"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Motivational Quote -->
+      <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+          <blockquote class="blockquote">
+            <p id="motivationalQuote" class="mb-0"></p>
+          </blockquote>
+        </div>
+      </div>
+    </div>
+
+    <!-- YouTube Page -->
+    <div id="youtubePage" class="page-content container-fluid" style="display: none;">
+      <div class="text-center mb-5">
+        <h2><i class="fab fa-youtube text-danger me-3"></i>집중력 향상 영상</h2>
+        <p class="text-muted">집중력을 높여주는 음악과 영상들을 감상하세요</p>
+      </div>
+      
+      <div class="youtube-container">
+        <div class="video-card">
+          <h5 class="mb-3">🎵 Lo-fi Hip Hop</h5>
+          <iframe class="video-frame" 
+            src="https://www.youtube.com/embed/jfKfPfyJRdk" 
+            title="Lofi Hip Hop Radio"
+            allowfullscreen>
+          </iframe>
+          <p class="text-muted mt-3">편안한 로파이 음악으로 집중력을 높여보세요</p>
+        </div>
+        
+        <div class="video-card">
+          <h5 class="mb-3">🌧️ Rain Sounds</h5>
+          <iframe class="video-frame" 
+            src="https://www.youtube.com/embed/mPZkdNFkNps" 
+            title="Rain Sounds for Studying"
+            allowfullscreen>
+          </iframe>
+          <p class="text-muted mt-3">빗소리와 함께하는 깊은 집중 시간</p>
+        </div>
+        
+        <div class="video-card">
+          <h5 class="mb-3">🎼 Classical Focus</h5>
+          <iframe class="video-frame" 
+            src="https://www.youtube.com/embed/sJ8EtgDXAHI" 
+            title="Classical Music for Studying"
+            allowfullscreen>
+          </iframe>
+          <p class="text-muted mt-3">클래식 음악으로 우아한 집중 환경 조성</p>
+        </div>
+
+        <div class="video-card">
+          <h5 class="mb-3">🌊 Wave Sound</h5>
+          <iframe class="video-frame" 
+            src="https://www.youtube.com/embed/gZqkSSqBa-8?si=oCYakf8DNRrXLpnN" 
+            title="Wave Sound for Studying"
+            allowfullscreen>
+          </iframe>
+          <p class="text-muted mt-3">시원한 파도소리와 함께 집중해요</p>
+        </div>
+
+        <div class="video-card">
+          <h5 class="mb-3">☕ Cafe Sound</h5>
+          <iframe class="video-frame" 
+            src="https://www.youtube.com/embed/b78FLPvTOvk?si=tf-PVOoMuq2vRVWr" 
+            title="Cafe Sound for Studying"
+            allowfullscreen>
+          </iframe>
+          <p class="text-muted mt-3">잔잔한 카페에서 집중해요</p>
+        </div>
+
+        <div class="video-card">
+          <h5 class="mb-3">🔥 Campfire Sound</h5>
+          <iframe class="video-frame" 
+            src="https://www.youtube.com/embed/N_g3AiXF-q8?si=fQn3xXwNqEvwiM47" 
+            title="Campfire Sound for Studying"
+            allowfullscreen>
+          </iframe>
+          <p class="text-muted mt-3">타닥타닥 모닥불과 집중해요</p>
+        </div>
+
+        <div class="video-card">
+          <h5 class="mb-3">📖 Library Sound</h5>
+          <iframe class="video-frame" 
+            src="https://www.youtube.com/embed/757G_El3ABI?si=rlB5Tya1P21wPP6o" 
+            title="Library Sound for Studying"
+            allowfullscreen>
+          </iframe>
+          <p class="text-muted mt-3">조용한 도서관에서 집중해봐요</p>
+        </div>
+
+        <div class="video-card">
+          <h5 class="mb-3">🎹 Forest Piano Sound</h5>
+          <iframe class="video-frame" 
+            src="https://www.youtube.com/embed/Yuw8TnTei58?si=rnevIyqDtRlodAsf" 
+            title="Piano Music for Studying"
+            allowfullscreen>
+          </iframe>
+          <p class="text-muted mt-3">숲속에서 잔잔한 피아노와 집중해봐요</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Page -->
+    <div id="settingsPage" class="page-content container-fluid" style="display: none;">
+      <div class="row justify-content-center">
+        <div class="col-md-8">
+          <div class="card border-0 shadow">
+            <div class="settings-panel p-4">
+              <h3 class="card-title mb-4">
+                <i class="fas fa-cog me-2"></i>설정
+              </h3>
+              
+              <div class="settings-section">
+                <h5>타이머 설정</h5>
+                <div class="row g-3 mb-4">
+                  <div class="col-md-4">
+                    <label class="form-label">집중 시간 (분)</label>
+                    <input type="number" class="form-control" id="settingsFocusTime" value="25" min="1" max="120">
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">짧은 휴식 (분)</label>
+                    <input type="number" class="form-control" id="settingsShortBreak" value="5" min="1" max="30">
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">긴 휴식 (분)</label>
+                    <input type="number" class="form-control" id="settingsLongBreak" value="30" min="15" max="60">
+                  </div>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h5>사운드 설정</h5>
+                <div class="form-check form-switch mb-3">
+                  <input class="form-check-input" type="checkbox" id="soundEnabled" checked>
+                  <label class="form-check-label" for="soundEnabled">
+                    타이머 완료 시 알림음 재생
+                  </label>
+                </div>
+                <div class="row g-2">
+                  <div class="col-6">
+                    <button class="btn btn-outline-success w-100" onclick="playSound('focus')">
+                      <i class="fas fa-play me-2"></i>집중 완료음 테스트
+                    </button>
+                  </div>
+                  <div class="col-6">
+                    <button class="btn btn-outline-info w-100" onclick="playSound('break')">
+                      <i class="fas fa-play me-2"></i>휴식 완료음 테스트
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <button class="btn btn-primary w-100 mt-4" onclick="saveSettings()">
+                <i class="fas fa-save me-2"></i>설정 저장
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer>
+    <p>Team POCUS</p>
+    <p>경기대학교 웹프로그래밍 프로젝트</p>
+    <a href="https://github.com/gaorihoe/webp/tree/main" target="_blank"><img src="github.png"></a>
+  </footer>
+
+  <!-- Floating Controls (Absolute Positioning) -->
+  <div class="floating-controls d-none d-lg-block">
+    <button class="btn btn-primary btn-sm mb-2" onclick="scrollToTop()" title="맨 위로">
+      <i class="fas fa-arrow-up"></i>
+    </button>
+  </div>
+
+  <!-- Audio Elements -->
+  <audio id="focusCompleteSound" src="Break.mp3" preload="auto" style="display: none;"></audio>
+  <audio id="breakCompleteSound" src="Focus.mp3" preload="auto" style="display: none;"></audio>
+
+  <!-- jQuery and Bootstrap JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/jquery-ui.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // Global Variables
+    let focusTime = 25 * 60;
+    let shortBreakTime = 5 * 60;
+    let longBreakTime = 30 * 60;
+    let currentTime = focusTime;
+    let isFocus = true;
+    let isRunning = false;
+    let isPaused = false;
+    let cycleCount = 0;
+    let timerInterval;
+    let currentDate = new Date().toISOString().split('T')[0];
+
+    // Motivational Quotes
+    const motivationalQuotes = [
+      "작은 노력들이 모여 큰 성취를 만듭니다.",
+      "집중하고 포기하지 마세요.",
+      "당신의 유일한 한계는 당신 자신입니다.",
+      "위대한 일들은 시간이 걸립니다.",
+      "완벽함보다는 진전이 중요합니다.",
+      "오늘의 노력이 내일의 성공을 만듭니다.",
+      "꾸준함이 재능을 이깁니다.",
+      "시작이 반이다.",
+      "매일 조금씩 성장하세요.",
+    ];
+
+    // Timer Application Object
+    const TimerApp = {
+      settings: {
+        focusTime: 25,
+        shortBreak: 5,
+        longBreak: 30,
+        soundEnabled: true
+      },
+
+      init() {
+        this.loadSettings();
+        this.updateDisplay();
+        this.updateCircle();
+        this.displayRandomQuote();
+      },
+
+      start() {
+        if (isPaused) {
+          isPaused = false;
+        } else if (!isRunning) {
+          isRunning = true;
+        }
+        
+        timerInterval = setInterval(() => {
+          currentTime--;
+          this.updateDisplay();
+          this.updateCircle();
+          
+          if (currentTime <= 0) {
+            this.complete();
+          }
+        }, 1000);
+
+        this.updateButtons();
+      },
+
+      pause() {
+        clearInterval(timerInterval);
+        isPaused = true;
+        isRunning = false;
+        this.updateButtons();
+      },
+
+      reset() {
+        clearInterval(timerInterval);
+        isRunning = false;
+        isPaused = false;
+        isFocus = true;
+        currentTime = focusTime;
+        this.updateDisplay();
+        this.updateCircle();
+        this.updateModeDisplay();
+        this.updateButtons();
+      },
+
+      complete() {
+        clearInterval(timerInterval);
+        isRunning = false;
+        isPaused = false;
+
+        // Play sound
+        if (this.settings.soundEnabled) {
+          this.playCompletionSound(isFocus);
+        }
+
+        // Update cycle count
+        if (isFocus) {
+          cycleCount++;
+          $('#cycleNumber').text(cycleCount);
+          this.saveCycleCount();
+        }
+
+        // Toggle mode and start break/focus
+        this.toggleMode();
+        this.start();
+      },
+
+      toggleMode() {
+        isFocus = !isFocus;
+        
+        if (isFocus) {
+          currentTime = focusTime;
+        } else {
+          currentTime = (cycleCount > 0 && cycleCount % 4 === 0) ? longBreakTime : shortBreakTime;
+        }
+        
+        this.updateDisplay();
+        this.updateCircle();
+        this.updateModeDisplay();
+      },
+
+      updateDisplay() {
+        const minutes = Math.floor(currentTime / 60);
+        const seconds = currentTime % 60;
+        const display = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        $('#timeDisplay').text(display);
+        document.title = `${display} - POCUS`;
+      },
+
+      updateCircle() {
+        const totalTime = isFocus ? focusTime : (cycleCount > 0 && cycleCount % 4 === 0 ? longBreakTime : shortBreakTime);
+        const progress = ((totalTime - currentTime) / totalTime) * 100;
+        
+        document.documentElement.style.setProperty('--percent', progress);
+        
+        const circle = $('#timerCircle');
+        if (currentTime <= 10 && isRunning) {
+          circle.addClass('blinking');
+          document.documentElement.style.setProperty('--timer-color', 'var(--warn-color)');
+        } else {
+          circle.removeClass('blinking');
+          const color = isFocus ? 'var(--danger-color)' : 'var(--success-color)';
+          document.documentElement.style.setProperty('--timer-color', color);
+        }
+      },
+
+      updateModeDisplay() {
+        const modeText = isFocus ? '집중 모드' : '휴식 모드';
+        const badgeClass = isFocus ? 'bg-danger' : 'bg-success';
+        $('#modeDisplay').removeClass('bg-danger bg-success bg-info').addClass(badgeClass).text(modeText);
+      },
+
+      playCompletionSound(wasFocus) {
+        const soundId = wasFocus ? 'focusCompleteSound' : 'breakCompleteSound';
+        const audio = document.getElementById(soundId);
+        if (audio && audio.play) {
+          audio.play().catch(e => console.log('Sound play failed:', e));
+        }
+      },
+
+      loadSettings() {
+        const saved = localStorage.getItem('pocusSettings');
+        if (saved) {
+          this.settings = {...this.settings, ...JSON.parse(saved)};
+        }
+        
+        focusTime = this.settings.focusTime * 60;
+        shortBreakTime = this.settings.shortBreak * 60;
+        longBreakTime = this.settings.longBreak * 60;
+        currentTime = focusTime;
+
+        // Update UI
+        $('#settingsFocusTime').val(this.settings.focusTime);
+        $('#settingsShortBreak').val(this.settings.shortBreak);
+        $('#settingsLongBreak').val(this.settings.longBreak);
+        $('#soundEnabled').prop('checked', this.settings.soundEnabled);
+      },
+
+      saveSettings() {
+        localStorage.setItem('pocusSettings', JSON.stringify(this.settings));
+      },
+
+      saveCycleCount() {
+        localStorage.setItem(`cycles-${currentDate}`, cycleCount);
+      },
+
+      loadCycleCount() {
+        const saved = localStorage.getItem(`cycles-${currentDate}`);
+        cycleCount = saved ? parseInt(saved) : 0;
+        $('#cycleNumber').text(cycleCount);
+      },
+
+      displayRandomQuote() {
+        const quote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
+        $('#motivationalQuote').text(quote);
+      }
+    };
+
+    // Todo Application Object
+    const TodoApp = {
+      todos: [],
+      completedTodos: [],
+      currentDate: new Date().toISOString().split('T')[0],
+
+      init() {
+        this.loadTodos();
+        this.updateProgress();
+        this.loadCompletionLog();
+      },
+
+      add() {
+        const input = $('#todoInput');
+        const text = input.val().trim();
+        
+        if (!text) return;
+
+        const goalInput = $('#goalTimeInput');
+const goalTime = goalInput.val();
+
+const todo = {
+          id: Date.now(),
+          text: text,
+          completed: false,
+          goalTime: goalTime
+        };
+
+        this.todos.push(todo);
+        this.render();
+        this.save();
+        input.val('');
+      },
+
+      toggle(id) {
+        const todo = this.todos.find(t => t.id === id);
+        if (todo) {
+          todo.completed = !todo.completed;
+          
+         if (todo.completed) {
+          const now = new Date();
+          const [h, m] = todo.goalTime ? todo.goalTime.split(':').map(Number) : [null, null];
+
+          if (h !== null && m !== null) {
+            const goal = new Date();
+            goal.setHours(h, m, 0, 0);
+
+            // 완료 시간이 목표 시간보다 이르면 early, 늦으면 late
+            todo.early = now < goal;
+            todo.late = now > goal;
+          } else {
+            todo.early = false;
+            todo.late = false;
+          }
+
+          todo.completedAt = now.toISOString();
+          this.completedTodos.push({ ...todo });
+        } else {
+          this.completedTodos = this.completedTodos.filter(t => t.id !== id);
+          todo.early = false;
+          todo.late = false;
+        }
+          
+          this.render();
+          this.save();
+          this.updateProgress();
+          this.saveCompletionLog();
+          this.loadCompletionLog();
+        }
+      },
+
+      remove(id) {
+        this.todos = this.todos.filter(t => t.id !== id);
+        this.completedTodos = this.completedTodos.filter(t => t.id !== id);
+        this.render();
+        this.save();
+        this.updateProgress();
+        this.saveCompletionLog();
+        this.loadCompletionLog();
+      },
+
+      render() {
+        const container = $('#todoList');
+        container.empty();
+
+        this.todos.forEach(todo => {
+  const itemClasses = ['todo-item'];
+  if (todo.completed) itemClasses.push('completed');
+  if (todo.early) itemClasses.push('early');
+  if (todo.late) itemClasses.push('late');
+
+  const timeInfo = (() => {
+    if (!todo.goalTime) return '';
+    const now = new Date();
+    const [h, m] = todo.goalTime.split(':').map(Number);
+    const goal = new Date();
+    goal.setHours(h, m, 0, 0);
+    let diff = Math.floor((goal - now) / 60000);
+
+    if (diff < 0) return `<span class="small text-danger ms-2">⏰ 지남 (${todo.goalTime})</span>`;
+    const hours = Math.floor(diff / 60);
+    const mins = diff % 60;
+    const timeLeft = hours > 0 ? `${hours}시간 ${mins}분 남음` : `${mins}분 남음`;
+    return `<span class="small text-muted ms-2">⏰ ${todo.goalTime} (${timeLeft})</span>`;
+  })();
+
+  const item = $(`
+    <div class="${itemClasses.join(' ')}" data-id="${todo.id}">
+      <div class="d-flex align-items-center">
+        <input type="checkbox" class="form-check-input me-3" ${todo.completed ? 'checked' : ''} 
+               onchange="TodoApp.toggle(${todo.id})">
+        <div class="flex-grow-1 ${todo.completed ? 'text-decoration-line-through text-muted' : ''}">
+          ${todo.text} ${timeInfo}
+        </div>
+        <button class="btn btn-sm btn-outline-danger ms-2" onclick="TodoApp.remove(${todo.id})">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+    </div>
+  `);
+  container.append(item);
+});
+
+      },
+
+      updateProgress() {
+        const total = this.todos.length;
+        const completed = this.todos.filter(t => t.completed).length;
+        const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+        // Update circular progress
+        const circumference = 2 * Math.PI * 25;
+        const offset = circumference - (percentage / 100) * circumference;
+        $('#progressCircle').css('stroke-dashoffset', offset);
+        
+        $('#progressText').text(`${percentage}% 완료`);
+      },
+
+      save() {
+        localStorage.setItem(`todos-${this.currentDate}`, JSON.stringify(this.todos));
+      },
+
+      loadTodos() {
+        const saved = localStorage.getItem(`todos-${this.currentDate}`);
+        this.todos = saved ? JSON.parse(saved) : [];
+        this.render();
+      },
+
+      saveCompletionLog() {
+        localStorage.setItem(`completed-${this.currentDate}`, JSON.stringify(this.completedTodos));
+      },
+
+      loadCompletionLog() {
+        const saved = localStorage.getItem(`completed-${this.currentDate}`);
+        const completed = saved ? JSON.parse(saved) : [];
+        
+        const container = $('#completionLog');
+        container.empty();
+
+        if (completed.length === 0) {
+          container.append('<p class="text-muted small">아직 완료한 작업이 없습니다.</p>');
+          return;
+        }
+
+        completed.forEach(todo => {
+          const completedTime = new Date(todo.completedAt).toLocaleTimeString('ko-KR', {
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+          
+          let isEarly = false;
+          let isLate = false;
+
+          if (todo.goalTime) {
+            const [h, m] = todo.goalTime.split(':').map(Number);
+            const goal = new Date();
+            goal.setHours(h, m, 0, 0);
+
+            const completed = new Date(todo.completedAt);
+            isEarly = completed < goal;
+            isLate = completed > goal;
+          }
+
+          const logEntry = $(`
+            <div class="log-entry border ${isEarly ? 'border-success' : isLate ? 'border-danger' : 'border-secondary'}">
+              <div class="d-flex justify-content-between align-items-center">
+                <div class="small">
+                  ${todo.text}
+                  ${todo.goalTime ? `<span class="text-muted"> (목표: ${todo.goalTime})</span>` : ''}
+                </div>
+                <span class="badge ${isEarly ? 'bg-success' : isLate ? 'bg-danger' : 'bg-secondary'}">${new Date(todo.completedAt).toLocaleTimeString('ko-KR', {
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}</span>
+              </div>
+            </div>
+          `);
+
+          container.append(logEntry);
+        });
+      },
+
+      changeDate(date) {
+        this.currentDate = date;
+        this.loadTodos();
+        this.updateProgress();
+        this.loadCompletionLog();
+      }
+    };
+
+    // UI Functions
+    function showPage(pageId) {
+      $('.page-content').hide();
+      $(`#${pageId}Page`).show();
+      
+      // Update navigation
+      $('.sidebar .nav-link').removeClass('active');
+      $(`.sidebar .nav-link[onclick="showPage('${pageId}')"]`).addClass('active');
+      
+      // 모바일에서는 페이지 전환 시 항상 사이드바 닫기
+      if (window.innerWidth < 992) {
+        $('#sidebar').removeClass('active');
+      }
+    }
+
+    function toggleDarkMode() {
+      $('body').toggleClass('dark');
+      localStorage.setItem('darkMode', $('body').hasClass('dark'));
+    }
+
+    function toggleSettings() {
+      $('#settingsPanel').slideToggle();
+    }
+
+    function updateTimerSettings() {
+      const focusMinutes = parseInt($('#focusTime').val());
+      const breakMinutes = parseInt($('#breakTime').val());
+      
+      if (focusMinutes && breakMinutes) {
+        focusTime = focusMinutes * 60;
+        shortBreakTime = breakMinutes * 60;
+        
+        if (!isRunning) {
+          currentTime = isFocus ? focusTime : shortBreakTime;
+          TimerApp.updateDisplay();
+          TimerApp.updateCircle();
+        }
+        
+        $('#settingsPanel').slideUp();
+      }
+    }
+
+    function saveSettings() {
+      TimerApp.settings.focusTime = parseInt($('#settingsFocusTime').val());
+      TimerApp.settings.shortBreak = parseInt($('#settingsShortBreak').val());
+      TimerApp.settings.longBreak = parseInt($('#settingsLongBreak').val());
+      TimerApp.settings.soundEnabled = $('#soundEnabled').is(':checked');
+      
+      TimerApp.saveSettings();
+      TimerApp.loadSettings();
+      
+      // Show success message
+      const toast = $(`
+        <div class="toast align-items-center text-white bg-success border-0 position-fixed" 
+             style="top: 20px; right: 20px; z-index: 9999;" role="alert">
+          <div class="d-flex">
+            <div class="toast-body">설정이 저장되었습니다!</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+          </div>
+        </div>
+      `);
+      
+      $('body').append(toast);
+      const bsToast = new bootstrap.Toast(toast[0]);
+      bsToast.show();
+      
+      toast.on('hidden.bs.toast', () => toast.remove());
+    }
+
+    function playSound(type) {
+      TimerApp.playCompletionSound(type === 'focus');
+    }
+
+    function scrollToTop() {
+      $('html, body').animate({scrollTop: 0}, 300);
+    }
+
+    // Event Listeners
+    $(document).ready(function() {
+      // Initialize applications
+      TimerApp.init();
+      TodoApp.init();
+      
+      // Load dark mode preference
+      if (localStorage.getItem('darkMode') === 'true') {
+        $('body').addClass('dark');
+      }
+      
+      // Load cycle count
+      TimerApp.loadCycleCount();
+      
+      // Set current date
+      $('#datePicker').val(currentDate).on('change', function() {
+        TodoApp.changeDate($(this).val());
+        currentDate = $(this).val();
+        TimerApp.loadCycleCount();
+      });
+      
+      // Mobile sidebar toggle
+      $('#sidebarToggle').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        $('#sidebar').toggleClass('active');
+      });
+      
+      // Close sidebar when clicking outside on mobile
+      $(document).on('click', function(e) {
+        if (window.innerWidth < 992) {
+          if (!$(e.target).closest('#sidebar').length && 
+              !$(e.target).closest('#sidebarToggle').length &&
+              !$(e.target).closest('.navbar-toggler').length) {
+            $('#sidebar').removeClass('active');
+          }
+        }
+      });
+      
+      // 윈도우 리사이즈 시 처리 추가
+      $(window).on('resize', function() {
+        if (window.innerWidth >= 992) {
+          // 데스크톱으로 전환시 모바일 상태 초기화
+          $('#sidebar').removeClass('active');
+        }
+      });
+      
+      // Todo input enter key
+      $('#todoInput').on('keypress', function(e) {
+        if (e.which === 13) {
+          TodoApp.add();
+        }
+      });
+      
+      // Prevent form submission
+      $('form').on('submit', function(e) {
+        e.preventDefault();
+      });
+    });
+
+    // jQuery Plugin - Custom Timer Plugin
+    $.fn.focusTimer = function(options) {
+      const settings = $.extend({
+        duration: 25 * 60,
+        onComplete: function() {},
+        onTick: function() {}
+      }, options);
+      
+      return this.each(function() {
+        const $this = $(this);
+        let timeLeft = settings.duration;
+        
+        const interval = setInterval(() => {
+          timeLeft--;
+          settings.onTick.call(this, timeLeft);
+          
+          if (timeLeft <= 0) {
+            clearInterval(interval);
+            settings.onComplete.call(this);
+          }
+        }, 1000);
+        
+        $this.data('timer-interval', interval);
+      });
+    };
+  </script>
